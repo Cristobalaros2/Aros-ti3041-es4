@@ -1,105 +1,81 @@
-# Documento de uso de IA — ES3 Ferretería El Martillo
+# Documento de uso de IA — ES4 API REST del catálogo
 
 ## Parte 1: Registro de consultas
 
-### Consulta 1 — Entorno del proyecto (Etapa 0)
-**Prompt:** "Prepara la Evaluación Sumativa 3: crea el proyecto Django con la app catalogo usando pipenv y dejando también requirements.txt, un .gitignore que excluya db.sqlite3 y __pycache__, y el README con la tabla de las 5 etapas y sus entregables. Todo en el repo nuevo, con el primer commit etapa-0-entorno."
+### Consulta 1 — Preparación del entorno e interpretación de la pauta (Etapa 0)
+**Prompt:** "C:\Users\arosc\OneDrive\Escritorio\CUARTO SEMESTRE\PROGRAMACIÓN BACK END\Evaluacion 4 a traves de esta pauta y escala de apreciacion, necesito que hagas todo esto en esta carpeta donde se encuentran los archivos, pagina y todo eso C:\Users\arosc\OneDrive\Escritorio\CUARTO SEMESTRE\PROGRAMACIÓN BACK END\Evaluacion4 VS" (junto con la pauta `Evaluación Sumativa 4` y la escala de apreciacion).
 
-**Resumen de respuesta:** Proyecto Django con settings en `config`, app `catalogo`, Pipfile y requirements.txt actualizados, .gitignore con la basura de Python y SQLite, y README con la tabla de etapas.
+**Resumen de respuesta:** La IA leyó la pauta y la escala, exploró el proyecto de la ES3 (modelo `Producto`, fixture de 40 productos, superusuario `admin`), detectó que faltaban DRF y simplejwt, que `requirements.txt` estaba en UTF-16 y que el README/uso_ia eran de evaluaciones anteriores. Propuso un plan por etapas con los 5 commits de la pauta y preguntó sobre repositorio GitHub, historial git, credenciales y la Parte 2 de `uso_ia.md`.
 
-**Qué usó o modificó antes de integrarla:** Instalé con pipenv y verifiqué que `runserver` arrancara sin errores. Como db.sqlite3 no se versiona, dejé la fixture `catalogo/fixtures/productos.json` para poder regenerar los 40 productos con `loaddata` en cualquier clon. Revisé con `git status` que no se colara nada (venv, .pyc, la BD) antes de cerrar el commit.
+**Qué usó o modificó antes de integrarla:** Respondí las preguntas (repo nuevo `aros-ti3041-es4`, historial limpio solo ES4, contraseña `admin123`, borrador de la Parte 2 para personalizar). Antes de codificar descarté el cambio suelto de `tema.css`, reinicié el historial git con una rama orfan y apunté el remote al repo nuevo.
 
-### Consulta 2 — CRUD web con confirmación (Etapa 1)
-**Prompt:** "Etapa 1: CRUD de productos desde el sitio. Crea un ModelForm para Producto y las vistas de crear, editar y eliminar con plantilla, protegidas con un decorador staff_required que si el usuario no es staff lo redirija con un mensaje de error; antes de eliminar muestra una página de confirmación. Usa django.contrib.messages para los avisos de éxito y error, y enlaza todo desde el listado del catálogo. Commit etapa-1-crud."
+### Consulta 2 — Instalación y configuración de DRF (Etapa 0)
+**Prompt:** (parte del plan aprobado) "Instalar con pip: djangorestframework + djangorestframework-simplejwt; reescribir requirements.txt (UTF-8) y actualizar Pipfile. settings.py: rest_framework en INSTALLED_APPS + bloque REST_FRAMEWORK con JWTAuthentication."
 
-**Resumen de respuesta:** Las tres vistas (`crear_producto`, `editar_producto`, `eliminar_producto`) con el decorador `staff_required`, el formulario compartido `producto_form.html`, la página `confirmar_eliminar.html` que solo borra en POST, y los mensajes success/error en cada acción.
+**Resumen de respuesta:** Instaló `djangorestframework==3.18.3` y `djangorestframework-simplejwt==5.5.1`, reescribió `requirements.txt` en UTF-8, agregó los paquetes al `Pipfile`, configuró `INSTALLED_APPS` y `REST_FRAMEWORK` (JWTAuthentication + SessionAuthentication, permisos AllowAny por defecto, renderers JSON y Browsable API) siguiendo el quickstart oficial de DRF. `manage.py check` sin errores. Commit `etapa-0-drf`.
 
-**Qué usó o modificó antes de integrarla:** Probé tres escenarios: sin sesión me devuelve el mensaje "Inicia sesión con una cuenta de administrador…", con usuario normal "No tienes permisos…", y como admin puedo crear, editar y eliminar (siempre pasando por la confirmación). Verifiqué el token CSRF en los formularios y que los mensajes se mostraran en base.html.
+**Qué usó o modificó antes de integrarla:** Verifiqué con `python manage.py check` y con `import rest_framework` que todo cargara. La configuración se contrastó con https://www.django-rest-framework.org/tutorial/quickstart/ y la de simplejwt con su getting started oficial.
 
-### Consulta 3 — Reportes con ORM (Etapa 2)
-**Prompt:** "Etapa 2: dos reportes que usen el ORM y no cálculos a mano: resumen general con values y annotate por categoría (cantidad de productos, precio promedio, stock total) más aggregate con los totales generales, y stock crítico con filter de los productos con stock menor o igual a 5 ordenados de menor a mayor. Cada reporte en su página: /reportes/resumen/ y /reportes/stock/. Commit etapa-2-reportes."
+### Consulta 3 — Serializer y endpoints de lectura (Etapa 1)
+**Prompt:** (parte del plan) "Etapa 1: serializer del modelo principal. Implemente los endpoints GET /api/productos/ (listado completo) y GET /api/productos/<id>/ (detalle), respondiendo JSON con los códigos correctos (200, 404)."
 
-**Resumen de respuesta:** Las vistas `reporte_resumen` y `reporte_stock` con `Count`, `Avg`, `Sum`, `values().annotate()` y `filter(stock__lte=UMBRAL_STOCK_CRITICO)`, más las dos tablas en sus templates.
+**Resumen de respuesta:** Creó `catalogo/serializers.py` con `ProductoSerializer` (campos `id, nombre, categoria, precio, stock, imagen`; validaciones de nombre ≥ 3 caracteres, categoría no vacía, precio y stock ≥ 0), `catalogo/api.py` con `ProductoList` y `ProductoDetail` (generic views de DRF), `catalogo/api_urls.py` y el include en `config/urls.py`. Probado: listado 200 con 39 productos, detalle 200, inexistente 404. Commit `etapa-1-lectura`.
 
-**Qué usó o modificó antes de integrarla:** Contrasté cada número contra la base: 40 productos, 6 categorías, 1.718 unidades en stock y 11 productos bajo el umbral de los cuales 7 están agotados. Revisé que los cálculos salieran todos del ORM y no de listas en Python.
+**Qué usó o modificó antes de integrarla:** Levanté el servidor y probé los tres casos con requests reales antes de commitear.
 
-### Consulta 4 — Formulario de consulta con validaciones (Etapa 3)
-**Prompts:**
-- "Crea el modelo ConsultaCliente con nombre, correo, mensaje, producto de interés (ForeignKey opcional a Producto) y fecha automática, más el ModelForm con estas validaciones: nombre obligatorio de mínimo 3 caracteres, solo letras, espacios y puntos (sin números); correo obligatorio que termine en @gmail.com; mensaje entre 10 y 500 caracteres. Con labels y help_texts en español, y el template con {% csrf_token %}."
-- "Agrega la vista /consulta/ que al enviar por POST guarde la consulta en la BD y muestre una página de éxito; y que cada vez que alguien abre un producto lo registre en la sesión (clave 'visitados', máximo 3 y sin repetir) para mostrarle el historial en la página de detalle."
+### Consulta 4 — Endpoints de escritura (Etapa 2)
+**Prompt:** (parte del plan) "Etapa 2: POST (crear), PUT o PATCH (actualizar) y DELETE (eliminar) sobre el recurso. Las validaciones del serializer deben rechazar datos inválidos con código 400."
 
-**Resumen de respuesta:** El modelo `ConsultaCliente`, el `ConsultaClienteForm` con `clean_nombre`, `clean_correo` y `clean_mensaje`, la vista `formulario_consulta` con `consulta.html` y `consulta_exitosa.html`, y la sesión con `ULTIMOS_VISITADOS = 3` que se actualiza en `detalle_producto` y entrega el `historial`.
+**Resumen de respuesta:** Extendió las vistas a `ListCreateAPIView` y `RetrieveUpdateDestroyAPIView`. Probado: POST válido 201, POST inválido 400 con mensajes por campo, PATCH 200, PUT 200, DELETE 204. Commit `etapa-2-escritura`.
 
-**Qué usó o modificó antes de integrarla:** Le armé un script de pruebas con 19 casos hasta que pasaran todos: nombre con números rechazado, nombre de menos de 3 caracteres, nombre solo con puntos, correo sin @gmail.com, correo con espacios al medio, mensaje de 9 y de 501 caracteres, y los casos válidos con tildes y ñ. Ajusté los mensajes de error para que explicaran cada regla, verifiqué que el token CSRF estuviera en el template y que el historial mostrara exactamente 3 productos sin importar cuántas veces repitiera uno. Commit etapa-3-clientes.
+**Qué usó o modificó antes de integrarla:** En la primera prueba manual el PUT devolvió 400; al investigar vi que era la codificación del body en PowerShell (el `ñ` se mandaba mal), no la API — con UTF-8 correcto respondía 200. Limpié los productos de prueba de la BD antes del commit.
 
-### Consulta 5 — Primer landing animado (OpenCode)
-**Prompts:**
-- "Hazme el landing page de la ferretería con animaciones: preloader al entrar, hero con título animado, secciones de categorías y productos destacados, contadores que muestren datos reales del ORM y barra de progreso al hacer scroll."
-- "podrias dejar ese sello de calidad mas cerca del boton de crear cuenta, para que asi no este por encima de la imagen, como tambien la etiqueta pequeña del precios bajos"
-- "haz que cada uno este un poco mas abajo y mas separado el uno del otro, que no queden tan juntos que si no el sello no se ve completo"
+### Consulta 5 — Recomendaciones de seguridad JWT (Etapa 3)
+**Prompt:** (parte del plan, exigido por la pauta) "Solicite a la IA recomendaciones de seguridad para su implementación (expiración y refresco de tokens, permisos por método, manejo de errores), valídelas contra la documentación oficial y aplique las que correspondan."
 
-**Resumen de respuesta:** Un landing con preloader, hero a dos columnas con collage 3D que sigue el cursor, contadores armados con los `aggregate` de la vista (40 productos, 6 categorías, 1.718 unidades), carrusel infinito de productos, banda con marquee, categorías en cuadrícula bento y un sello circular giratorio con texto en SVG.
+**Resumen de respuesta:** Recomendaciones recibidas y contrastadas con la documentación oficial de simplejwt (https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html):
+1. **Vida corta del access token** — `ACCESS_TOKEN_LIFETIME = timedelta(minutes=15)` (los defaults de la librería son más largos para producción).
+2. **Refresh de vida media** — `REFRESH_TOKEN_LIFETIME = timedelta(days=1)`.
+3. **Rotación de refresh** — `ROTATE_REFRESH_TOKENS = True` para que cada refresh entregue un refresh nuevo.
+4. **Prefijo Bearer** — `AUTH_HEADER_TYPES = ('Bearer',)` según el getting started oficial.
+5. **Permisos por método** — `IsAuthenticatedOrReadOnly` en las vistas: SAFE_METHODS (GET/HEAD/OPTIONS) públicos, escritura solo autenticada → 401 sin token.
+6. **Manejo de errores** — DRF devuelve 401 con `{"detail":"Given token not valid..."}` sin token/inválido, y 400 en el login con credenciales malas; la lectura nunca exige token.
 
-**Qué usó o modificó antes de integrarla:** Moví el sello y el chip "Precios bajos" a un contenedor junto al botón "Crear cuenta" y luego los bajé y separé en una segunda ronda hasta que el sello se viera completo sin tapar las imágenes. Verifiqué que los contadores usaran los datos del ORM y no números fijos, que todo respondiera en móvil y que hubiera respaldo para `prefers-reduced-motion`. Lo integré en el commit entrega-final; más adelante lo reemplacé por completo con el diseño de la consulta 6.
+**Qué usó o modificó antes de integrarla:** Apliqué 1–5 en `settings.py` (`SIMPLE_JWT`) y en `catalogo/api.py`. Verifiqué el flujo completo: token con admin 200 → POST con token 201 → POST/PUT/DELETE sin token 401 → refresh 200. Commit `etapa-3-jwt`.
 
-### Consulta 6 — Rediseño del landing (OpenCode)
-**Prompt:** "quiero que en base a este diseño https://godly.design/website/lightspark/ cambies el landing page al diseño que te mande, con las imagenes que ya tienes acerca de herramientas, materiales de construccion y todo eso"
+### Consulta 6 — Colección de pruebas con IA (Etapa 4)
+**Prompt (el de la pauta):**
+> Genera una coleccion de requests curl para probar una API DRF en
+> http://localhost:8000/api/productos/ con JWT en /api/token/. Cubre: listado,
+> detalle existente y 404, POST valido e invalido, PUT, DELETE, y POST sin
+> token (debe dar 401). Incluye el codigo de respuesta esperado en cada caso.
 
-**Resumen de respuesta:** La IA descargó las capturas del sitio de referencia para analizar el diseño (fondo claro, grilla de imágenes redondeadas alrededor del título, líneas finas con marcas "+", botones tipo píldora, CTA y footer oscuros). Agregó bloques nuevos en `base.html` (`body_class`, `main_class`, `footer_content`) para poder cambiar solo el landing, actualizó la vista `landing_page` para enviar las categorías y la cantidad de productos con stock crítico, y reescribió `landing.html` con las secciones nuevas usando las imágenes de `static/images` y los datos del ORM.
+**Resumen de respuesta:** Una colección curl con los casos pedidos y los códigos esperados (200, 404, 201, 400, 401, 204) más la obtención y refresco de token.
 
-**Qué usó o modificó antes de integrarla:** La sesión quedó incompleta: nunca se creó el archivo de estilos `landing.css` y la grilla del hero tenía un error de posiciones que hacía que una imagen quedara encima del título. Por eso no la integré tal cual y la continué en la consulta 7.
+**Qué usó o modificó antes de integrarla:** La adapté a este proyecto en `coleccion_pruebas.sh`: rutas `/api/`, login con `admin/admin123`, obtainsión de token y refresh, PATCH además de PUT, y borrado del producto creado para no ensuciar la BD.
 
-### Consulta 7 — Terminar el landing (Claude Code)
-**Prompt:** "hola, te voy a pasar las cosas que me habia cambiado una ia de opencode en cuanto al landing page de mi pagina, necesito que lo termines" (y le pegué la conversación completa con OpenCode).
+**Pruebas que fallaron inicialmente y corrección aplicada (ver detalle en pruebas_api.md):**
+- **PUT con token → 400** en la primera ejecución: el JSON con `ñ` pasado por variable de bash en Windows llegaba en Latin-1 (`0xf1`) y Django respondía error de UTF-8. **Corrección:** guardar la respuesta con `curl -o` y reenviar con `-d @archivo` para preservar los bytes. Tras la corrección: 200.
+- **POST /api/token/ → 400** en un intento con runner de PowerShell: PowerShell 5.1 comillaba mal el body al invocar `curl.exe`. **Corrección:** ejecutar la colección con Git Bash; respondió 200. No era defecto de la API.
 
-**Resumen de respuesta:** Creó `landing.css` con el estilo de la referencia, movió las posiciones de las imágenes del hero al CSS y levantó el servidor para revisar la página en el navegador, en escritorio y en celular. Al revisarla detectó que la franja de categorías salía repetida (unas 40 en vez de 6): el `ordering` del `Meta` de `Producto` hacía que `distinct()` no agrupara solo por categoría. Lo corrigió en la vista ordenando explícitamente por `categoria` antes del `distinct()`.
+Resultado final de la ejecución: **13 OK, 0 FAIL** (`pruebas_api.md`).
 
-**Qué usó o modificó antes de integrarla:** Revisé el resultado en el navegador y pedí cambios en las consultas siguientes.
+### Consulta 7 — Documentación de entrega (Etapa 4)
+**Prompt:** (parte del plan) "Escribir pruebas_api.md con esperado vs obtenido, reescribir README.md para ES4 y uso_ia.md con Parte 1 y Parte 2."
 
-### Consulta 8 — Ajustes visuales del hero, header y footer
-**Prompts:**
-- "estas imagenes no las difumines tanto, lo otro es que acomodes las letras y los botones para que no queden por encima de las imagenes y de la segunda imagen borra ese texto en grande del 'el martillo'"
-- "ahora quita el emoji de martillo y coloca solo 'El martillo' y al medio de la pagina junto con el slogan"
-- "puedes hacer que las letras queden como mas en negro, como esta la de la segunda imagen"
+**Resumen de respuesta:** `pruebas_api.md` con tabla de 13 pruebas y el análisis de los fallos iniciales; `README.md` con endpoints, etapas y cómo levantar el proyecto; este `uso_ia.md`.
 
-**Resumen de respuesta:** Bajó el difuminado de las imágenes (de `blur(12px)` a `blur(3px)`). Para que el texto no se montara sobre las imágenes, hizo que el hero completo fuera una grilla CSS donde el texto ocupa su propia celda central y la fila del medio crece según su alto. Eliminó la palabra gigante "el martillo" del footer, dejó el header como "El Martillo" centrado con el slogan y cambió los links del menú a color negro con más grosor.
-
-**Qué usó o modificó antes de integrarla:** Mandé capturas de pantalla de lo que no me gustaba y revisé cada cambio en distintos tamaños de pantalla antes de pedir el siguiente.
-
-### Consulta 9 — Aplicar el diseño al resto del sitio
-**Prompt:** "ya mira, sucede de que el resto de la pagina y las ventanas estan asi como en la primera imagen, no se si puedes retocar con los mismos colores y mejorar un poco cada pestaña"
-
-**Resumen de respuesta:** Separó en un archivo nuevo, `tema.css`, los estilos del header, el nav y el footer junto con los de las páginas internas: catálogo, detalle, reportes, formularios, carrito y compra. Lo cargó en `base.html` para todas las páginas y dejó `landing.css` solo con las secciones del inicio. Movió el footer oscuro de 4 columnas a `base.html` y quitó un color azul que estaba escrito directo en `reporte_stock.html`. No modificó `style.css`: el tema nuevo se carga después y lo sobrescribe.
-
-**Qué usó o modificó antes de integrarla:** Revisé que las páginas públicas cargaran y se vieran bien. Las páginas que requieren sesión (carrito, compra exitosa y crear o editar productos) las tengo que revisar iniciando sesión.
-
-### Consulta 10 — Limpieza de comentarios
-**Prompt:** "puedes borrar todos los comentarios de los archivos en visual studio que colocaste"
-
-**Resumen de respuesta:** Eliminó los comentarios agregados durante el rediseño en `tema.css`, `landing.css`, `landing.html` y `views.py`, sin tocar los comentarios que ya existían en el proyecto, y verificó que todas las páginas siguieran cargando.
-
-**Qué usó o modificó antes de integrarla:** Lo integré tal cual.
-
-### Consulta 11 — Actualizar este registro
-**Prompt:** "puedes modificar el anexo de ia acorde a lo que hicimos ahora, modificalo entero si quieres"
-
-**Resumen de respuesta:** Agregó a la Parte 1 las consultas 6 a 11 del rediseño. No escribió la Parte 2, porque la pauta exige que la redacte yo.
-
-**Qué usó o modificó antes de integrarla:** Revisé que cada consulta correspondiera a lo que pedí. La Parte 2 la actualicé con mis propias palabras.
-
-### Consulta 12 — Dejar este anexo solo de la ES3 (OpenCode)
-**Prompt:** "puedes hacer el anexo de ia que sea solamente de esta evaluacion y con prompts coherentes acorde a lo que te pedi del formulario?"
-
-**Resumen de respuesta:** Reestructuró el documento completo: sacó las consultas de la ES2, agregó las de las etapas 0 a 3 (incluida la del formulario con sus validaciones y las del primer landing animado), dejó el registro cubriendo solo esta evaluación y reescribió la Parte 2 como borrador enfocado en la ES3.
-
-**Qué usó o modificó antes de integrarla:** Revisé que los prompts correspondieran a lo que realmente le pedí en cada etapa y ajusté la Parte 2 con mis palabras antes de entregarla.
+**Qué usó o modificó antes de integrarla:** Revisé que cada consulta de la Parte 1 correspondiera a lo realmente pedido en esta sesión y que los resultados de pruebas coincidieran con la última ejecución. La Parte 2 la dejo como borrador para que la reescriba con mis propias palabras, como exige la pauta.
 
 ---
 
 ## Parte 2: Explicación del proceso
 
-Para esta evaluación lo que más me gustó fue el formulario de consulta con sus validaciones. Antes habría hecho los chequeos con un montón de if repartidos en la vista o con JavaScript en el navegador, y ver que con `clean_nombre`, `clean_correo` y `clean_mensaje` quedaba todo en un solo lugar, con mensajes en español y sin tocar el template, cambió cómo voy a hacer los formularios de ahora en adelante. Los 19 casos de prueba que le armé me hicieron encontrar huecos que no había pensado, como el correo con un espacio al medio o un nombre que solo tenía puntos.
+> **BORRADOR — reescribir con tus palabras antes de entregar.**  
+> La pauta no acepta textos redactados por IA en esta parte.
 
-Lo que más me complicó fueron dos cosas del backend. La primera, la sesión de los últimos productos visitados: al principio, si abría el mismo producto dos veces se repetía en el historial, y tuve que dejarlo sin repetir y cortado en 3. La segunda, una franja de categorías en el landing que mostraba 40 categorías en vez de 6: pasé rato mirando el template hasta que vi que el problema era del ORM — el `ordering` del modelo hacía que el `distinct()` agrupara por id y no por categoría, y la solución fue ordenar explícitamente por categoría antes de agrupar.
+En esta evaluación usé la IA como copiloto para montar la API REST sobre el proyecto de la ferretería que ya tenía de la ES3. Al principio le pedí que leyera la pauta y la escala y me propusiera un plan por etapas; eso me sirvió para ordenar el trabajo y no saltarme nada de los commits. Lo que más me sirvió tal cual fue la configuración de DRF y simplejwt: la copió de la documentación oficial y solo tuve que verificar con `manage.py check` que no rompiera nada.
 
-También me costó partir de una referencia de diseño ajena y adaptarla a mi proyecto sin romper el resto del sitio. Usar bloques en `base.html` (como los del footer y las clases de body y main) para cambiar solo el landing me salvó: las páginas internas siguieron iguales mientras el inicio se veía distinto. Al final, esta evaluación me dejó claro que el ORM y los formularios de Django hacen el trabajo pesado; a mí me queda pensar bien los datos, las reglas y cómo se ve todo al final.
+Las recomendaciones de seguridad del token las pedí como exige la pauta y luego las contrasté con la web de simplejwt antes de aplicarlas; ahí aprendí por qué el access token tiene que vivir poco (15 minutos) y el refresh más (un día), y por qué conviene rotar el refresh. Lo que tuve que corregir fue en las pruebas: el PUT me falló con un error raro de UTF-8 y al principio pensé que estaba mal la API, pero el problema era que el `ñ` del producto se perdía al pasar el JSON por bash en Windows; la solución fue guardar la respuesta en un archivo y reenviarla tal cual. También un intento de correr todo desde PowerShell se rompía por el comillado de los JSON y cambié a Git Bash.
+
+Lo que aprendí es que probar la API con una colección de verdad (y anotar esperado vs obtenido) encuentra huecos que mirando el código no se ven, y que cuando algo falla conviene primero saber quién falla: el servidor o el cliente. Parte de esto lo voy a reescribir con mis propias palabras antes de entregar, como pide la pauta.
